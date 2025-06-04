@@ -19,7 +19,6 @@
   </style>
 </head>
 <body>
-<!-- nowa ikonka -->
 <img id="hud" src="assets/Klodka.png" alt="KŁODKA">
 <div id="loader">🔍 Ładowanie kamery…</div>
 
@@ -30,7 +29,6 @@
   device-orientation-permission-ui="enabled:true">
 
   <a-assets>
-    <!-- nowy nakładany obrazek -->
     <img id="tex-odcz" src="assets/Odczarowanie1.png">
   </a-assets>
 
@@ -39,27 +37,40 @@
 </a-scene>
 
 <script>
-/* ukryj loader po starcie renderu */
-document.querySelector('a-scene').addEventListener('renderstart',()=>loader.remove());
+/* 1. schowaj loader dopiero gdy MindAR rzeczywiście gotów (arReady) */
+document.querySelector('a-scene').addEventListener('arReady', ()=>loader.remove());
 
-function makePlane(sel){
-  const img=document.querySelector(sel);
-  const ar = img.naturalHeight / img.naturalWidth;
-  const p  = document.createElement('a-plane');
-  p.setAttribute('src', sel);
-  p.setAttribute('width', '1');
+/* 2. cache jednej płaszczyzny, by nie tworzyć nowej za każdym wykryciem */
+let planeCached = null;
+function getPlane(){
+  if (planeCached) return planeCached;
+
+  const img = document.querySelector('#tex-odcz');
+  const ar  = img.naturalHeight / img.naturalWidth;
+
+  const p   = document.createElement('a-plane');
+  p.setAttribute('src', '#tex-odcz');
+  p.setAttribute('width','1');
   p.setAttribute('height', ar.toString());
-  p.setAttribute('position', '0 0.05 0.005');  /* przesunięcie w górę */
+  p.setAttribute('position','0 0.05 0.005');
   p.setAttribute('material','shader:flat;transparent:true');
+
+  planeCached = p;
   return p;
 }
 
+/* 3. helper do czyszczenia – bez innerHTML ='' (mniej rekursji + leak-safe) */
+function clear(el){
+  while(el.firstChild) el.removeChild(el.firstChild);
+}
+
+/* 4. logika targetu */
 const anchor = document.getElementById('anchor-prawda');
 anchor.addEventListener('targetFound', ()=>{
-  anchor.innerHTML = '';
-  anchor.appendChild(makePlane('#tex-odcz'));
+  clear(anchor);
+  anchor.appendChild(getPlane());
 });
-anchor.addEventListener('targetLost', ()=>{ anchor.innerHTML = ''; });
+anchor.addEventListener('targetLost', ()=>clear(anchor));
 </script>
 </body>
 </html>
